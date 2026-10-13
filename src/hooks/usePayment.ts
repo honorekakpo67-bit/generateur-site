@@ -23,51 +23,54 @@ export function usePayment() {
 
     const description = `Publication site web - ${metadata.site_title || 'Site généré'}`;
 
-    let result: FedaPayTransactionResponse;
+    try {
+      const result = await initFedaPayPayment(PAYMENT_AMOUNT, PAYMENT_CURRENCY, description, metadata);
+      
+      if (!result.success || !result.checkoutUrl || !result.transactionId) {
+        setPayment((prev) => ({ ...prev, status: 'failed' }));
+        setError(result.error || 'Échec de l\'initialisation du paiement FedaPay');
+        setIsProcessing(false);
+        return { success: false, error: result.error };
+      }
 
-    if (import.meta.env.DEV && !import.meta.env.VITE_FEDAPAY_API_KEY) {
-      result = await simulatePayment(PAYMENT_AMOUNT, PAYMENT_CURRENCY, metadata);
-    } else {
-      result = await initFedaPayPayment(PAYMENT_AMOUNT, PAYMENT_CURRENCY, description, metadata);
-    }
+      setPayment((prev) => ({
+        ...prev,
+        status: 'pending',
+        transactionId: result.transactionId,
+        paymentUrl: result.checkoutUrl,
+      }));
 
-    if (!result.success || !result.checkoutUrl || !result.transactionId) {
-      setPayment((prev) => ({ ...prev, status: 'failed' }));
-      setError(result.error || 'Échec de l\'initialisation du paiement FedaPay');
       setIsProcessing(false);
-      return { success: false, error: result.error };
+      return { success: true, paymentUrl: result.checkoutUrl, transactionId: result.transactionId };
+    } catch (e) {
+      setPayment((prev) => ({ ...prev, status: 'failed' }));
+      const errorMsg = e instanceof Error ? e.message : 'Erreur lors de l\'initialisation du paiement';
+      setError(errorMsg);
+      setIsProcessing(false);
+      return { success: false, error: errorMsg };
     }
-
-    setPayment((prev) => ({
-      ...prev,
-      status: 'pending',
-      transactionId: result.transactionId,
-      paymentUrl: result.checkoutUrl,
-    }));
-
-    setIsProcessing(false);
-    return { success: true, paymentUrl: result.checkoutUrl, transactionId: result.transactionId };
   }, []);
 
   const checkPaymentStatus = useCallback(async (transactionId: string) => {
     setPayment((prev) => ({ ...prev, status: 'processing' }));
 
-    let result;
-    if (import.meta.env.DEV && !import.meta.env.VITE_FEDAPAY_API_KEY) {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      result = { success: true, status: 'approved' as const, transactionId };
-    } else {
-      result = await verifyFedaPayPayment(transactionId);
-    }
+    try {
+      const result = await verifyFedaPayPayment(transactionId);
 
-    if (result.success && result.status === 'approved') {
-      setPayment((prev) => ({ ...prev, status: 'paid' }));
-      return { success: true };
-    }
+      if (result.success && result.status === 'approved') {
+        setPayment((prev) => ({ ...prev, status: 'paid' }));
+        return { success: true };
+      }
 
-    setPayment((prev) => ({ ...prev, status: 'failed' }));
-    setError(result.error || 'Paiement échoué ou en attente');
-    return { success: false, error: result.error };
+      setPayment((prev) => ({ ...prev, status: 'failed' }));
+      setError(result.error || 'Paiement échoué ou en attente');
+      return { success: false, error: result.error };
+    } catch (e) {
+      setPayment((prev) => ({ ...prev, status: 'failed' }));
+      const errorMsg = e instanceof Error ? e.message : 'Erreur de vérification du paiement';
+      setError(errorMsg);
+      return { success: false, error: errorMsg };
+    }
   }, []);
 
   const resetPayment = useCallback(() => {

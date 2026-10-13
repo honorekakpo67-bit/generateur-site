@@ -160,6 +160,8 @@ export function Workspace({
         onSuccess={handlePaymentSuccess}
         siteTitle={title}
         siteKind={siteKind}
+        previewCode={previewCode}
+        deploymentUrl={deployment.url}
       />
     </div>);
 }

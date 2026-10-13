@@ -1,6 +1,13 @@
 import { images } from './images';
 import { renderSite, type Theme } from './shell';
 
+interface UploadedImage {
+  id: string;
+  name: string;
+  dataUrl: string;
+  type: 'hero' | 'gallery';
+}
+
 const theme: Theme = {
   bg: '#F5EFE6',
   surface: '#EBE2D4',
@@ -61,16 +68,26 @@ const bags = [
 { origin: 'Guatemala', name: 'Huehuetenango', notes: 'Prune, amande, miel', price: '17,00 €', bg: '#B9A282', ink: '#241710', process: 'Lavé' },
 { origin: 'Rwanda', name: 'Nyamasheke', notes: 'Cerise, thé noir, orange', price: '18,50 €', bg: '#6B2E2A', ink: '#F5EFE6', process: 'Lavé' }];
 
+function whatsAppLink(productName: string, price: string): string {
+  if (!whatsappNumber) return '#';
+  const phone = whatsappNumber.replace(/\D/g, '');
+  const message = encodeURIComponent(`Bonjour, je souhaite commander : ${productName} (${price})`);
+  return `https://wa.me/${phone}?text=${message}`;
+}
 
 function bagCard(bag: (typeof bags)[number]): string {
+  const waLink = whatsAppLink(bag.name, bag.price);
   return `          <article class="bag">
             <div class="label" style="background:${bag.bg};color:${bag.ink}"><small>${bag.process} · 250 g</small><span class="origin">${bag.origin}</span></div>
             <h3>${bag.name}</h3><p class="notes">${bag.notes}</p>
-            <div class="row"><strong>${bag.price}</strong><button class="btn btn-sm" type="button">Ajouter</button></div>
+            <div class="row"><strong>${bag.price}</strong><a href="${waLink}" target="_blank" rel="noreferrer" class="btn btn-sm">${waLink !== '#' ? 'Commander sur WhatsApp' : 'Ajouter'}</a></div>
           </article>`;
 }
 
-export function shop(title: string): string {
+export function shop(title: string, uploadedImages: UploadedImage[] = [], whatsappNumber: string = ''): string {
+  const heroImage = uploadedImages.find((img) => img.type === 'hero')?.dataUrl || images.shopHero;
+  const galleryImages = uploadedImages.filter((img) => img.type === 'gallery').map((img) => img.dataUrl);
+  
   return renderSite({
     title,
     tagline: 'Cafés de spécialité torréfiés chaque mardi, expédiés sous 48 h.',
@@ -81,11 +98,21 @@ export function shop(title: string): string {
     {
       id: 'accueil',
       label: 'Accueil',
-      html: `      <div class="hero"><img src="${images.shopHero}" alt="Sachets de café et matériel de dégustation" /><div class="wrap">
+      html: `      <div class="hero"><img src="${heroImage}" alt="Sachets de café et matériel de dégustation" /><div class="wrap">
         <h1 class="display" style="max-width:820px">Torréfié le mardi. Dans votre tasse le jeudi.</h1>
         <p class="lead" style="margin-top:22px">Des lots uniques achetés en direct aux producteurs, torréfiés en petites quantités.</p>
         <div style="display:flex;gap:12px;margin-top:34px;flex-wrap:wrap"><a href="#boutique" data-link="boutique" class="btn">Découvrir les cafés</a><a href="#abonnement" data-link="abonnement" class="btn btn-ghost">S'abonner</a></div>
       </div></div>
+
+      ${galleryImages.length > 0 ? `
+      <section class="block"><div class="wrap">
+        <div class="section-head"><h2>Galerie</h2><p class="muted">Quelques photos de votre café.</p></div>
+        <div class="grid g4" style="gap:16px">
+          ${galleryImages.map((img, i) => `<div class="photo" style="aspect-ratio:4/3"><img src="${img}" alt="${title} - Image ${i + 1}" /></div>`).join('')}
+        </div>
+      </div></section>
+      ` : ''}
+
       <section class="block"><div class="wrap">
         <div class="section-head"><h2>Les torréfactions<br />de la semaine</h2><a href="#boutique" data-link="boutique" class="btn btn-ghost">Tout voir</a></div>
         <div class="grid g3">
@@ -115,9 +142,9 @@ ${bags.map(bagCard).join('\n')}
       html: `      <section class="block"><div class="wrap">
         <div class="section-head"><h1 class="display">Le bon café, sans y penser.</h1><p class="lead">Livraison toutes les 2 ou 4 semaines. Pause ou arrêt en un clic.</p></div>
         <div class="grid g3">
-          <div class="card sub"><h3>Découverte</h3><div class="price">15 €</div><p class="muted">1 sachet de 250 g</p><p style="margin-top:18px">Une origine différente à chaque envoi, choisie par nos torréfacteurs.</p><div class="foot"><a href="#contact" data-link="contact" class="btn btn-ghost">Choisir</a></div></div>
-          <div class="card sub featured"><h3>Duo</h3><div class="price">27 €</div><p class="muted">2 sachets de 250 g</p><p style="margin-top:18px">Un espresso et un filtre, pour comparer et apprendre.</p><div class="foot"><a href="#contact" data-link="contact" class="btn">Choisir</a></div></div>
-          <div class="card sub"><h3>Bureau</h3><div class="price">62 €</div><p class="muted">1 kg en grains</p><p style="margin-top:18px">Pour les équipes et les petits cafés, avec conseils d'extraction.</p><div class="foot"><a href="#contact" data-link="contact" class="btn btn-ghost">Choisir</a></div></div>
+          <div class="card sub"><h3>Découverte</h3><div class="price">15 €</div><p class="muted">1 sachet de 250 g</p><p style="margin-top:18px">Une origine différente à chaque envoi, choisie par nos torréfacteurs.</p><div class="foot"><a href="${whatsAppLink('Abonnement Découverte', '15 €/mois')}" target="_blank" rel="noreferrer" class="btn btn-ghost">${whatsappNumber ? 'Commander sur WhatsApp' : 'Choisir'}</a></div></div>
+          <div class="card sub featured"><h3>Duo</h3><div class="price">27 €</div><p class="muted">2 sachets de 250 g</p><p style="margin-top:18px">Un espresso et un filtre, pour comparer et apprendre.</p><div class="foot"><a href="${whatsAppLink('Abonnement Duo', '27 €/mois')}" target="_blank" rel="noreferrer" class="btn">${whatsappNumber ? 'Commander sur WhatsApp' : 'Choisir'}</a></div></div>
+          <div class="card sub"><h3>Bureau</h3><div class="price">62 €</div><p class="muted">1 kg en grains</p><p style="margin-top:18px">Pour les équipes et les petits cafés, avec conseils d'extraction.</p><div class="foot"><a href="${whatsAppLink('Abonnement Bureau', '62 €/mois')}" target="_blank" rel="noreferrer" class="btn btn-ghost">${whatsappNumber ? 'Commander sur WhatsApp' : 'Choisir'}</a></div></div>
         </div>
       </div></section>`
     },
@@ -181,7 +208,7 @@ ${bags.map(bagCard).join('\n')}
         </div>
         <div class="wrap" style="margin-top:48px;text-align:center">
           <p class="lead">L'inscription est automatique à votre premier achat. Suivez votre progression dans votre espace client.</p>
-          <a href="#boutique" data-link="boutique" class="btn" style="margin-top:24px">Commencer ma collection</a>
+          <a href="${whatsAppLink('Programme fidélité Grain de Café', 'Gratuit')}" target="_blank" rel="noreferrer" class="btn" style="margin-top:24px">${whatsappNumber ? 'Rejoindre sur WhatsApp' : 'Commencer ma collection'}</a>
         </div>
       </div></section>`
     },
@@ -209,7 +236,7 @@ ${bags.map(bagCard).join('\n')}
         <section class="block dark"><div class="wrap" style="text-align:center">
           <h2>Vous voulez aller plus loin ?</h2>
           <p class="lead" style="margin:24px 0 32px;max-width:600px;margin-left:auto;margin-right:auto">Rejoignez le programme « Café pour la forêt » : 1 € par abonnement = 1 arbre planté chez nos producteurs Kenya/Rwanda.</p>
-          <a href="#abonnement" data-link="abonnement" class="btn">S'abonner & planter</a>
+          <a href="${whatsAppLink('Programme Café pour la forêt', '1 €/abonnement = 1 arbre')}" target="_blank" rel="noreferrer" class="btn">${whatsappNumber ? 'S\'abonner & planter sur WhatsApp' : 'S\'abonner & planter'}</a>
         </div></section>`
     },
     {
@@ -218,7 +245,7 @@ ${bags.map(bagCard).join('\n')}
       html: `      <section class="block"><div class="wrap split">
         <div><h1 class="display">Douze ans, un seul torréfacteur.</h1>
           <p class="lead" style="margin-top:24px">${title} est né dans un ancien atelier de reliure. Nous torréfions toujours sur le même tambour de 15 kg, à la main.</p></div>
-        <div class="photo" style="aspect-ratio:3/2"><img src="${images.team}" alt="L'équipe de ${title}" /></div>
+        <div class="photo" style="aspect-ratio:3/2"><img src="${heroImage}" alt="L'équipe de ${title}" /></div>
       </div></section>
       <section class="block dark"><div class="wrap">
         <h2 style="margin-bottom:40px">De la ferme à la tasse</h2>

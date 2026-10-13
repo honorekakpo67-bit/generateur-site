@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { CheckIcon, CreditCardIcon, Loader2Icon, ShieldIcon, XIcon } from 'lucide-react';
+import { CheckIcon, CreditCardIcon, ExternalLinkIcon, Loader2Icon, ShieldIcon, XIcon } from 'lucide-react';
 import { usePayment } from '../hooks/usePayment';
+import { buildShareUrl } from '../utils/share';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -9,9 +10,11 @@ interface PaymentModalProps {
   onSuccess: (transactionId: string) => void;
   siteTitle: string;
   siteKind: string;
+  previewCode: string;
+  deploymentUrl: string;
 }
 
-export function PaymentModal({ isOpen, onClose, onSuccess, siteTitle, siteKind }: PaymentModalProps) {
+export function PaymentModal({ isOpen, onClose, onSuccess, siteTitle, siteKind, previewCode, deploymentUrl }: PaymentModalProps) {
   const {
     payment,
     isProcessing,
@@ -24,25 +27,6 @@ export function PaymentModal({ isOpen, onClose, onSuccess, siteTitle, siteKind }
 
   const [step, setStep] = useState<'init' | 'redirect' | 'verifying' | 'success'>('init');
   const [countdown, setCountdown] = useState(0);
-
-  useEffect(() => {
-    if (!isOpen) {
-      resetPayment();
-      setStep('init');
-      return;
-    }
-    setStep('init');
-  }, [isOpen, resetPayment]);
-
-  useEffect(() => {
-    if (step === 'redirect' && payment.paymentUrl) {
-      window.open(payment.paymentUrl, '_blank', 'noopener,noreferrer');
-      setStep('verifying');
-      if (payment.transactionId) {
-        startVerification(payment.transactionId);
-      }
-    }
-  }, [step, payment.paymentUrl, payment.transactionId, startVerification]);
 
   const startVerification = useCallback(async (transactionId: string) => {
     const interval = setInterval(async () => {
@@ -66,6 +50,21 @@ export function PaymentModal({ isOpen, onClose, onSuccess, siteTitle, siteKind }
       clearInterval(countdownInterval);
     };
   }, [checkPaymentStatus, onSuccess]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      resetPayment();
+      setStep('init');
+      return;
+    }
+    setStep('init');
+  }, [isOpen, resetPayment]);
+
+  useEffect(() => {
+    if (step === 'redirect' && payment.paymentUrl) {
+      window.location.href = payment.paymentUrl;
+    }
+  }, [step, payment.paymentUrl]);
 
   const handleStartPayment = async () => {
     const metadata = {
@@ -217,9 +216,27 @@ export function PaymentModal({ isOpen, onClose, onSuccess, siteTitle, siteKind }
                 <CheckIcon className="h-8 w-8 text-accent" />
               </motion.div>
               <h3 className="text-[20px] font-bold text-ink">Paiement confirmé !</h3>
-              <p className="text-inkMuted">Votre site « {siteTitle} » va être publié.</p>
+              <p className="text-inkMuted">Votre site « {siteTitle} » est en ligne.</p>
               <div className="p-3 rounded-lg bg-accent/5 border border-accent/20 text-sm text-accent font-medium">
                 Transaction : {payment.transactionId}
+              </div>
+              <div className="space-y-2 pt-2">
+                <p className="text-[13px] text-inkFaint">Votre lien de partage :</p>
+                <a
+                  href={deploymentUrl || buildShareUrl(previewCode)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-accent text-white font-semibold text-[14px] hover:bg-accentDim transition-colors"
+                >
+                  <ExternalLinkIcon className="h-4 w-4" />
+                  Ouvrir le site
+                </a>
+                <button
+                  onClick={() => navigator.clipboard.writeText(deploymentUrl || buildShareUrl(previewCode))}
+                  className="text-[13px] text-accent hover:underline"
+                >
+                  Copier le lien
+                </button>
               </div>
             </div>
           )}

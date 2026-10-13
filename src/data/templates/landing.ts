@@ -1,6 +1,13 @@
 import { images } from './images';
 import { renderSite, type Theme } from './shell';
 
+interface UploadedImage {
+  id: string;
+  name: string;
+  dataUrl: string;
+  type: 'hero' | 'gallery';
+}
+
 const theme: Theme = {
   bg: '#FBFBF8',
   surface: '#F1F2EC',
@@ -60,7 +67,10 @@ const css = `    .hero { padding: 88px 0 40px; }
     .roi-result .big { font-family: var(--display); font-size: 64px; font-weight: 800; color: #B9E37A; }
     @media (max-width: 900px) { .hero .split, .row-feature { grid-template-columns: 1fr; gap: 36px; } .cta-band { padding: 48px 28px; } .feature-main { grid-row: auto; } }`;
 
-export function landing(title: string): string {
+export function landing(title: string, uploadedImages: UploadedImage[] = [], whatsappNumber: string = ''): string {
+  const heroImage = uploadedImages.find((img) => img.type === 'hero')?.dataUrl || images.landingHero;
+  const galleryImages = uploadedImages.filter((img) => img.type === 'gallery').map((img) => img.dataUrl);
+  
   return renderSite({
     title,
     tagline: "L'espace de travail calme pour les équipes qui livrent.",
@@ -81,9 +91,18 @@ export function landing(title: string): string {
             <a href="#fonctionnalites" data-link="fonctionnalites" class="btn btn-ghost">Voir comment ça marche</a>
           </div>
         </div>
-        <div class="photo"><img src="${images.landingHero}" alt="Tableau de bord ${title} sur un ordinateur portable" /></div>
+        <div class="photo"><img src="${heroImage}" alt="Tableau de bord ${title} sur un ordinateur portable" /></div>
       </div></div>
       <div class="wrap"><div class="logos"><span>Northwind</span><span>Lumen</span><span>Atlas&Co</span><span>Kinetic</span><span>Foundry</span></div></div>
+
+      ${galleryImages.length > 0 ? `
+      <section class="block"><div class="wrap">
+        <div class="section-head"><h2>Galerie</h2><p class="muted">Quelques images de votre projet.</p></div>
+        <div class="grid g4" style="gap:16px">
+          ${galleryImages.map((img, i) => `<div class="photo" style="aspect-ratio:4/3"><img src="${img}" alt="${title} - Image ${i + 1}" /></div>`).join('')}
+        </div>
+      </div></section>
+      ` : ''}
 
       <section class="block"><div class="wrap">
         <div class="section-head"><h2>Conçu pour<br />la concentration.</h2><p class="muted">Trois idées simples qui changent la façon dont votre équipe travaille au quotidien.</p></div>

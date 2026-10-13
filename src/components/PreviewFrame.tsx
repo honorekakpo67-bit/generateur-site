@@ -56,7 +56,7 @@ export function PreviewFrame({ html, viewport, onViewportChange, label }: Previe
           <iframe
             title="Aperçu du site généré"
             srcDoc={html}
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox"
             className="h-full w-full border-0 bg-white" />
           
         </div>

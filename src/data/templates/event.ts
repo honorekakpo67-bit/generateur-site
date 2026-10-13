@@ -1,6 +1,13 @@
 import { images } from './images';
 import { renderSite, type Theme } from './shell';
 
+interface UploadedImage {
+  id: string;
+  name: string;
+  dataUrl: string;
+  type: 'hero' | 'gallery';
+}
+
 const theme: Theme = {
   bg: '#0B0D12',
   surface: '#151925',
@@ -69,7 +76,17 @@ function speakerCard(s: (typeof speakers)[number]): string {
   return `          <div class="speaker"><div class="face" style="background:${s.bg};color:${s.ink ?? '#FFFFFF'}">${s.initials}</div><h3>${s.name}</h3><p>${s.role}</p></div>`;
 }
 
-export function event(title: string): string {
+function whatsAppLink(productName: string, price: string): string {
+  if (!whatsappNumber) return '#';
+  const phone = whatsappNumber.replace(/\D/g, '');
+  const message = encodeURIComponent(`Bonjour, je souhaite réserver : ${productName} (${price})`);
+  return `https://wa.me/${phone}?text=${message}`;
+}
+
+export function event(title: string, uploadedImages: UploadedImage[] = [], whatsappNumber: string = ''): string {
+  const heroImage = uploadedImages.find((img) => img.type === 'hero')?.dataUrl || images.eventHero;
+  const galleryImages = uploadedImages.filter((img) => img.type === 'gallery').map((img) => img.dataUrl);
+  
   return renderSite({
     title,
     tagline: 'Une journée, huit conférences sur le métier du design. Amsterdam, 24 avril 2026.',
@@ -83,10 +100,20 @@ export function event(title: string): string {
       html: `      <div class="hero"><div class="wrap">
         <h1 class="display">Un jour.<br />Huit talks.<br /><span style="color:var(--dark)">Zéro fluff.</span></h1>
         <div class="facts"><span><strong>24 avril 2026</strong></span><span>De Duif, Amsterdam</span><span>300 places</span></div>
-        <div style="display:flex;gap:12px;flex-wrap:wrap"><a href="#billets" data-link="billets" class="btn">Réserver — 89 €</a><a href="#programme" data-link="programme" class="btn btn-ghost">Voir le programme</a></div>
-        <div class="photo"><img src="${images.eventHero}" alt="Conférencier sur scène devant le public" /></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap"><a href="${whatsAppLink('Billet Early Bird Design Day', '89 €')}" target="_blank" rel="noreferrer" class="btn">${whatsappNumber ? 'Réserver sur WhatsApp — 89 €' : 'Réserver — 89 €'}</a><a href="#programme" data-link="programme" class="btn btn-ghost">Voir le programme</a></div>
+        <div class="photo"><img src="${heroImage}" alt="Conférencier sur scène devant le public" /></div>
         <div class="count"><div><strong>8</strong><span class="muted">conférences</span></div><div><strong>300</strong><span class="muted">participants</span></div><div><strong>1</strong><span class="muted">piste unique</span></div><div><strong>72%</strong><span class="muted">des places vendues</span></div></div>
       </div></div>
+
+      ${galleryImages.length > 0 ? `
+      <section class="block"><div class="wrap">
+        <div class="section-head"><h2>Galerie</h2><p class="muted">Quelques photos de votre événement.</p></div>
+        <div class="grid g4" style="gap:16px">
+          ${galleryImages.map((img, i) => `<div class="photo" style="aspect-ratio:4/3"><img src="${img}" alt="${title} - Image ${i + 1}" /></div>`).join('')}
+        </div>
+      </div></section>
+      ` : ''}
+
       <section class="block"><div class="wrap">
         <div class="section-head"><h2>Intervenants</h2><a href="#intervenants" data-link="intervenants" class="btn btn-ghost">Tous les intervenants</a></div>
         <div class="grid g4">
@@ -95,7 +122,7 @@ ${speakers.slice(0, 4).map(speakerCard).join('\n')}
       </div></section>
       <section class="block band"><div class="wrap split">
         <h2>Les tarifs early bird se terminent le 1er mars.</h2>
-        <div><p style="font-size:19px">Il reste 84 places. Les enregistrements sont inclus avec chaque billet.</p><a href="#billets" data-link="billets" class="btn" style="margin-top:28px">Prendre ma place</a></div>
+        <div><p style="font-size:19px">Il reste 84 places. Les enregistrements sont inclus avec chaque billet.</p><a href="${whatsAppLink('Billet Early Bird Design Day', '89 €')}" target="_blank" rel="noreferrer" class="btn" style="margin-top:28px">${whatsappNumber ? 'Réserver sur WhatsApp' : 'Prendre ma place'}</a></div>
       </div></section>`
     },
     {
@@ -195,9 +222,9 @@ ${speakers.map(speakerCard).join('\n')}
       html: `      <section class="block"><div class="wrap">
         <div class="section-head"><h1 class="display">Billets</h1><p class="lead">Déjeuner, enregistrements et afterparty inclus.</p></div>
         <div class="grid g3">
-          <div class="card ticket"><h3>Étudiant</h3><div class="price">39 €</div><ul><li>Accès à toutes les conférences</li><li>Déjeuner inclus</li><li>Justificatif requis</li></ul><div class="foot"><span class="sold">Plus que 12 places</span></div></div>
-          <div class="card ticket featured"><h3>Early bird</h3><div class="price">89 €</div><ul><li>Accès complet</li><li>Enregistrements à vie</li><li>Afterparty</li></ul><div class="foot"><a href="#infos" data-link="infos" class="btn">Réserver</a></div></div>
-          <div class="card ticket"><h3>Équipe · 5 places</h3><div class="price">390 €</div><ul><li>Tout le billet early bird</li><li>Facture unique</li><li>Places réservées</li></ul><div class="foot"><a href="#infos" data-link="infos" class="btn btn-ghost">Réserver</a></div></div>
+          <div class="card ticket"><h3>Étudiant</h3><div class="price">39 €</div><ul><li>Accès à toutes les conférences</li><li>Déjeuner inclus</li><li>Justificatif requis</li></ul><div class="foot"><a href="${whatsAppLink('Billet Étudiant Design Day', '39 €')}" target="_blank" rel="noreferrer" class="btn btn-sm">${whatsappNumber ? 'Réserver sur WhatsApp' : 'Plus que 12 places'}</a></div></div>
+          <div class="card ticket featured"><h3>Early bird</h3><div class="price">89 €</div><ul><li>Accès complet</li><li>Enregistrements à vie</li><li>Afterparty</li></ul><div class="foot"><a href="${whatsAppLink('Billet Early Bird Design Day', '89 €')}" target="_blank" rel="noreferrer" class="btn">${whatsappNumber ? 'Réserver sur WhatsApp' : 'Réserver'}</a></div></div>
+          <div class="card ticket"><h3>Équipe · 5 places</h3><div class="price">390 €</div><ul><li>Tout le billet early bird</li><li>Facture unique</li><li>Places réservées</li></ul><div class="foot"><a href="${whatsAppLink('Billet Équipe Design Day (5 places)', '390 €')}" target="_blank" rel="noreferrer" class="btn btn-ghost">${whatsappNumber ? 'Réserver sur WhatsApp' : 'Réserver'}</a></div></div>
         </div>
       </div></section>`
     },
@@ -215,7 +242,7 @@ ${speakers.map(speakerCard).join('\n')}
           <div class="form-row"><label>Prénom<input type="text" required /></label><label>Nom<input type="text" required /></label></div>
           <label>E-mail<input type="email" required /></label>
           <label>Billet<select><option>Early bird — 89 €</option><option>Étudiant — 39 €</option><option>Équipe — 390 €</option></select></label>
-          <button class="btn" type="submit">Confirmer la réservation</button>
+          <a href="${whatsAppLink('Réservation Design Day', 'À confirmer')}" target="_blank" rel="noreferrer" class="btn">${whatsappNumber ? 'Confirmer sur WhatsApp' : 'Confirmer la réservation'}</a>
           <div class="form-success">C'est réservé ! Votre billet arrive par e-mail.</div>
         </form>
       </div></section>`

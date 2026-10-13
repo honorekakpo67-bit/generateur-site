@@ -2,6 +2,12 @@ import LZString from 'lz-string';
 
 const HASH_KEY = 'site=';
 
+function getBaseUrl(): string {
+  const envBase = import.meta.env.VITE_SHARE_BASE_URL;
+  if (envBase) return envBase.replace(/\/$/, '');
+  return window.location.origin;
+}
+
 export function encodeSite(html: string): string {
   return LZString.compressToEncodedURIComponent(html);
 }
@@ -16,8 +22,9 @@ export function decodeSite(payload: string): string | null {
 
 /** A link that really resolves: the whole site travels inside the URL fragment. */
 export function buildShareUrl(html: string): string {
-  const { origin, pathname } = window.location;
-  return `${origin}${pathname}#${HASH_KEY}${encodeSite(html)}`;
+  const baseUrl = getBaseUrl();
+  const pathname = window.location.pathname;
+  return `${baseUrl}${pathname}#${HASH_KEY}${encodeSite(html)}`;
 }
 
 export function readSharedSite(): string | null {

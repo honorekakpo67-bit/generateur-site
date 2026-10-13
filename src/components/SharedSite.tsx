@@ -9,7 +9,7 @@ export function SharedSite({ html }: SharedSiteProps) {
     <iframe
       title="Site publié"
       srcDoc={html}
-      sandbox="allow-scripts allow-popups"
+      sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox"
       className="h-full w-full border-0 bg-white" />);
 
 

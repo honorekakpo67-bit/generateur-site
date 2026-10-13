@@ -1,6 +1,13 @@
 import { images } from './images';
 import { renderSite, type Theme } from './shell';
 
+interface UploadedImage {
+  id: string;
+  name: string;
+  dataUrl: string;
+  type: 'hero' | 'gallery';
+}
+
 const theme: Theme = {
   bg: '#F6F1E9',
   surface: '#EDE5D8',
@@ -50,7 +57,10 @@ const css = `    h1, h2, h3 { font-weight: 400; letter-spacing: -0.02em; }
     .faq-item p { margin-top: 12px; color: var(--muted); max-width: 680px; }
     @media (max-width: 900px) { .work-row { grid-template-columns: 1fr; gap: 4px; } .step, .timeline div, .process-step { grid-template-columns: 1fr; gap: 6px; } .hero-photo { aspect-ratio: 4 / 3; } }`;
 
-export function portfolio(title: string): string {
+export function portfolio(title: string, uploadedImages: UploadedImage[] = [], whatsappNumber: string = ''): string {
+  const heroImage = uploadedImages.find((img) => img.type === 'hero')?.dataUrl || images.portfolioHero;
+  const galleryImages = uploadedImages.filter((img) => img.type === 'gallery').map((img) => img.dataUrl);
+  
   return renderSite({
     title,
     tagline: 'Design produit et systèmes — interfaces qui se font oublier.',
@@ -65,7 +75,17 @@ export function portfolio(title: string): string {
         <h1 class="display">Je dessine des produits <em>calmes</em>, utiles, et faciles à aimer.</h1>
         <p class="lead" style="margin-top:32px">Designer produit indépendante à Lisbonne. Dix ans à concevoir des applications bancaires, des outils de données et des design systems.</p>
       </div></div>
-      <div class="wrap"><div class="photo hero-photo"><img src="${images.portfolioHero}" alt="Bureau de travail avec croquis et maquettes" /></div></div>
+      <div class="wrap"><div class="photo hero-photo"><img src="${heroImage}" alt="Bureau de travail avec croquis et maquettes" /></div></div>
+
+      ${galleryImages.length > 0 ? `
+      <section class="block"><div class="wrap">
+        <div class="section-head"><h2>Galerie</h2><p class="muted">Quelques images de votre portfolio.</p></div>
+        <div class="grid g4" style="gap:16px">
+          ${galleryImages.map((img, i) => `<div class="photo" style="aspect-ratio:4/3"><img src="${img}" alt="${title} - Image ${i + 1}" /></div>`).join('')}
+        </div>
+      </div></section>
+      ` : ''}
+
       <section class="block"><div class="wrap">
         <div class="section-head"><h2>Projets choisis</h2><a href="#projets" data-link="projets" class="btn btn-ghost">Tous les projets</a></div>
         <a href="#etude" data-link="etude" class="work-row"><span class="muted">2025</span><h3>Ledger</h3><span class="muted">Refonte de l'application bancaire mobile</span><span class="muted">Fintech</span></a>
@@ -100,7 +120,7 @@ export function portfolio(title: string): string {
         <h1 class="display" style="max-width:1000px">Rendre la banque mobile <em>lisible</em> à nouveau.</h1>
         <div class="stats" style="margin-top:64px"><div><strong class="result">+38%</strong><span class="muted">d'utilisateurs actifs</span></div><div><strong class="result">−54%</strong><span class="muted">d'appels au support</span></div><div><strong class="result">4,8</strong><span class="muted">note App Store</span></div><div><strong class="result">2,1 M</strong><span class="muted">clients concernés</span></div></div>
       </div></section>
-      <div class="wrap"><div class="photo" style="aspect-ratio:16/8"><img src="${images.portfolioHero}" alt="Maquettes du projet Ledger" style="object-position:center 70%" /></div></div>
+      <div class="wrap"><div class="photo" style="aspect-ratio:16/8"><img src="${heroImage}" alt="Maquettes du projet Ledger" style="object-position:center 70%" /></div></div>
       <section class="block"><div class="wrap">
         <div class="step"><h3>Le problème</h3><p class="lead">L'application comptait 140 écrans et trois navigations concurrentes. Les clients appelaient le support pour trouver leur RIB.</p></div>
         <div class="step"><h3>L'approche</h3><p class="lead">Trente entretiens, un audit complet, puis une seule question : que vient faire un client ici, neuf fois sur dix ?</p></div>

@@ -4,10 +4,16 @@ import { detectKind, deriveTitle, slugify } from '../utils/site';
 import { buildShareUrl } from '../utils/share';
 import type { Deployment, GenerationStatus } from '../types/generator';
 
+interface UploadedImage {
+  id: string;
+  name: string;
+  dataUrl: string;
+  type: 'hero' | 'gallery';
+}
+
 const THINK_MS = 900;
 const STREAM_MS = 5200;
 const TICK_MS = 32;
-const PREVIEW_THROTTLE_MS = 350;
 
 const DEPLOY_STEPS: Array<{status: Deployment['status'];delay: number;}> = [
 { status: 'packaging', delay: 400 },
@@ -24,20 +30,26 @@ interface GeneratorState {
   title: string;
   deployment: Deployment;
   progress: number;
+  images: UploadedImage[];
+  whatsappNumber: string;
 }
 
 const EMPTY_DEPLOYMENT: Deployment = { status: 'none', spaceName: '', url: '' };
 
+const EMPTY_STATE: GeneratorState = {
+  prompt: '',
+  status: 'idle',
+  code: '',
+  previewCode: '',
+  title: '',
+  deployment: EMPTY_DEPLOYMENT,
+  progress: 0,
+  images: [],
+  whatsappNumber: ''
+};
+
 export function useGenerator() {
-  const [state, setState] = useState<GeneratorState>({
-    prompt: '',
-    status: 'idle',
-    code: '',
-    previewCode: '',
-    title: '',
-    deployment: EMPTY_DEPLOYMENT,
-    progress: 0
-  });
+  const [state, setState] = useState<GeneratorState>(EMPTY_STATE);
 
   const timers = useRef<number[]>([]);
   const interval = useRef<number | null>(null);
@@ -54,42 +66,39 @@ export function useGenerator() {
   useEffect(() => clearAll, [clearAll]);
 
   const generate = useCallback(
-    (prompt: string) => {
+    (prompt: string, images: UploadedImage[] = [], whatsappNumber: string = '') => {
       const trimmed = prompt.trim();
       if (!trimmed) return;
       clearAll();
 
       const kind = detectKind(trimmed);
       const title = deriveTitle(trimmed, kind);
-      const full = buildSite(kind, title);
+      const full = buildSite(kind, title, images, whatsappNumber);
 
       setState({
         prompt: trimmed,
         status: 'thinking',
         code: '',
-        previewCode: '',
+        previewCode: full,
         title,
         deployment: EMPTY_DEPLOYMENT,
-        progress: 0
+        progress: 0,
+        images,
+        whatsappNumber
       });
 
       const start = window.setTimeout(() => {
         setState((prev) => ({ ...prev, status: 'streaming' }));
         const step = Math.max(24, Math.ceil(full.length / (STREAM_MS / TICK_MS)));
         let cursor = 0;
-        let lastPreview = 0;
 
         interval.current = window.setInterval(() => {
           cursor = Math.min(full.length, cursor + step);
           const slice = full.slice(0, cursor);
-          const now = Date.now();
-          const refreshPreview = now - lastPreview > PREVIEW_THROTTLE_MS || cursor >= full.length;
-          if (refreshPreview) lastPreview = now;
 
           setState((prev) => ({
             ...prev,
             code: slice,
-            previewCode: refreshPreview ? slice : prev.previewCode,
             progress: cursor / full.length,
             status: cursor >= full.length ? 'ready' : 'streaming'
           }));
@@ -115,7 +124,7 @@ export function useGenerator() {
         deployment: {
           status: 'packaging',
           spaceName: `deepsite-${slug}`,
-          url: buildShareUrl(prev.code)
+          url: buildShareUrl(prev.previewCode)
         }
       };
     });
@@ -134,17 +143,8 @@ export function useGenerator() {
 
   const reset = useCallback(() => {
     clearAll();
-    setState({
-      prompt: '',
-      status: 'idle',
-      code: '',
-      previewCode: '',
-      title: '',
-      deployment: EMPTY_DEPLOYMENT,
-      progress: 0
-    });
+    setState(EMPTY_STATE);
   }, [clearAll]);
 
-  const { code, ...restState } = state;
-  return { ...restState, generate, deploy, reset };
+  return { ...state, generate, deploy, reset };
 }
